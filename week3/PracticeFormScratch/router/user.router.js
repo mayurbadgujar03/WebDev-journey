@@ -8,8 +8,8 @@ router.post('/register', registerUser);
 router.get('/verify/:token', verify);
 router.get('/login', login);
 router.get('/profile', isLoggedIn, getMe);
-router.get('/logout', isLoggedIn, logout);
-router.get('/ForgotPassword', isLoggedIn, forgotPassword);
-router.get('/reset-password/:token', isLoggedIn, resetpassword);
+router.post('/logout', isLoggedIn, logout);
+router.get('/ForgotPassword', forgotPassword);
+router.post('/reset-password/:token', resetpassword);
 
 export default router;
