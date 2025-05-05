@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
-import mongoose, { Schema } from 'mongoose';
-import { type } from 'os';
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
     name: String,
