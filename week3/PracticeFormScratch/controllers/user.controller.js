@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 import sendMail from '../utils/mail.js';
-import { log } from 'console';
+import { error } from 'console';
 
 dotenv.config();
 
@@ -46,28 +46,8 @@ const registerUser = async (req, res) => {
 
         const token = crypto.randomBytes(32).toString("hex");
         user.verificationToken = token;
-
+        
         await user.save();
-
-        // const transporter = nodemailer.createTransport({
-        //     host: process.env.MAILTRAP_HOST,
-        //     port: process.env.MAILTRAP_PORT,
-        //     secure: false,
-        //     auth: {
-        //         user: process.env.MAILTRAP_USERNAME,
-        //         pass: process.env.MAILTRAP_PASSWORD,
-        //     },
-        // });
-
-        // const mailOptions = {
-        //     from: process.env.MAILTRAP_SENDERMAIL,
-        //     to: user.email,
-        //     subject: "Verify email",
-        //     text: `Use the token given below
-        //     ${process.env.BASE_URL}/api/v1/users/verify/${token}`,
-        // }
-
-        // transporter.sendMail(mailOptions);
 
         const mailOptions = {
             from: process.env.MAILTRAP_SENDERMAIL,
@@ -94,36 +74,30 @@ const registerUser = async (req, res) => {
 }
 
 const verify = async (req, res) => {
-
     const { token } = req.params;
-    console.log(token);
-
 
     if (!token) {
         return res.status(400).json({
             message: "Token is not valid",
+            error,
             success: false,
         });
     }
 
     try {
         const user = await User.findOne({ verificationToken: token });
-        console.log(user);
-
 
         if (!user) {
             return res.status(400).json({
-                message: "Token is not valid",
+                message: "user not found",
+                error,
                 success: false,
             });
         };
 
         user.isVerified = true;
-        user.verficationToken = undefined;
-
+        user.verificationToken = undefined;
         await user.save();
-        console.log(user);
-
 
         res.status(200).json({
             message: "User verified",
@@ -131,13 +105,11 @@ const verify = async (req, res) => {
         });
 
     } catch (error) {
-
         return res.status(400).json({
             error,
             message: "User not verified",
             success: false,
         })
-
     }
 }
 
@@ -175,7 +147,6 @@ const login = async (req, res) => {
 
             if (user.loginAttempts >= 3) {
                 user.lockUntil = Date.now() + 20 * 60 * 1000;
-                // user.lockUntil = Date.now() + 30 * 1000;
             }
 
             await user.save();
@@ -236,7 +207,7 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
     try {
-        const user = await User.findById(user.req.id).select("-password");
+        const user = await User.findById(req.user.id).select("-password");
 
         if (!user) {
             res.status(400).json({
@@ -283,7 +254,6 @@ const forgotPassword = async (req, res) => {
     };
 
     try {
-
         const user = await User.findOne({ email });
 
         if (!user) {
@@ -297,28 +267,7 @@ const forgotPassword = async (req, res) => {
 
         user.resetPasswordToken = token;
         user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
-
         user.save();
-
-        // const transporter = nodemailer.createTransport({
-        //     host: process.env.MAILTRAP_HOST,
-        //     port: process.env.MAILTRAP_PORT,
-        //     secure: false,
-        //     auth: {
-        //         user: process.env.MAILTRAP_USERNAME,
-        //         pass: process.env.MAILTRAP_PASSWORD,
-        //     },
-        // });
-
-        // const mailOptions = {
-        //     from: process.env.MAILTRAP_SENDERMAIL,
-        //     to: user.email,
-        //     subject: "reset password",
-        //     text: `Use the token given below
-        //     ${process.env.BASE_URL}/api/v1/users/reset-password/${token}`,
-        // }
-
-        // transporter.sendMail(mailOptions);
 
         const mailOptions = {
             from: process.env.MAILTRAP_SENDERMAIL,
@@ -328,7 +277,7 @@ const forgotPassword = async (req, res) => {
                 ${process.env.BASE_URL}/api/v1/users/reset-password/${token}`,
         }
 
-        sendMail(mailOptions)
+        sendMail(mailOptions);
 
         res.status(200).json({
             message: "Email sent",
@@ -353,9 +302,14 @@ const resetpassword = async (req, res) => {
             success: false,
         });
     };
+    if (!password) {
+        return res.status(400).json({
+            message: "Password is not available",
+            success: false,
+        });
+    };
 
     try {
-
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() }
