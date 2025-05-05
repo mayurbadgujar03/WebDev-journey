@@ -1,27 +1,25 @@
-import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const isLoggedIn = async (req, res, next) => {
 
+    let token = req.cookies?.token;
     try {
-        let token = req.cookie?.token;
-
-    if(!token) {
-        console.log("No token");
         
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication failed",
+            });
+        };
+        
+        const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        
+        next();
 
-        return res.status(401).json({
-            success: false,
-            message: "Authentication failed",
-        });
-    };
-
-    const decoded = await jwt.verify(token, process.env.JWT_SCRECT);
-    req.user = decoded;
-
-    next();
     } catch (error) {
         res.status(400).json({
             success: false,
